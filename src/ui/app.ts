@@ -430,7 +430,7 @@ export class App {
     c.register('file:save-as', { run: () => this.save(true), enabled: this.hasDoc }, 'ctrl+shift+s');
     c.register('file:print', { run: () => printSlides(d(), this.images), enabled: this.hasDoc }, 'ctrl+p');
     c.register('file:info', { run: () => this.infoDialog(), enabled: this.hasDoc });
-    c.register('file:about', () => { dialog('제품 정보', html(`<div style="line-height:1.7"><b>Opptx</b> 0.1.0<br>PPTX 프레젠테이션 편집기<br><span style="color:#5c6370;font-size:12px">HOP(HWP 편집기)의 구조 — 문서 엔진 · 렌더러 · 명령 기반 UI — 를 참고해 만든 PowerPoint 편집기입니다.</span></div>`), [{ label: '확인', primary: true }]); });
+    c.register('file:about', () => { dialog('제품 정보', html(`<div style="line-height:1.7"><b>Opptx</b> 0.1.0<br>PPTX 프레젠테이션 편집기<br><span style="color:#5c6370;font-size:12px">HOP(HWP 편집기, MIT)의 구조 — 문서 엔진 · 렌더러 · 명령 기반 UI — 를 참고해 만든 PPTX 편집기입니다.<br>MIT License · Copyright (c) 2026 moonlightpark<br>서드파티 라이선스: THIRD_PARTY_NOTICES.md<br>Microsoft와 관계없음. PowerPoint는 Microsoft Corporation의 상표입니다.</span></div>`), [{ label: '확인', primary: true }]); });
     // edit
     c.register('edit:undo', { run: () => { if (this.editor.editing) { document.execCommand('undo'); return; } d().undo(); }, enabled: () => !!this.doc && (this.editor.editing != null || d().canUndo()) }, 'ctrl+z');
     c.register('edit:redo', { run: () => { if (this.editor.editing) { document.execCommand('redo'); return; } d().redo(); }, enabled: () => !!this.doc && (this.editor.editing != null || d().canRedo()) }, 'ctrl+shift+z', 'ctrl+y');

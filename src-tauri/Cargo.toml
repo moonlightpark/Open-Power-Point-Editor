@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Opptx — PPTX presentation editor"
 edition = "2021"
 rust-version = "1.86"
+license = "MIT"
+repository = "https://github.com/moonlightpark/Open-Power-Point-Editor"
 resolver = "3"
 
 [build-dependencies]

@@ -1,6 +1,6 @@
 # Opptx — PPTX 편집기
 
-HOP(HWP 편집기)의 구조를 REA로 분석해서 같은 방식으로 만든 PowerPoint(.pptx) 편집기입니다.
+[HOP](https://github.com/golbin/hop)(HWP 편집기)의 구조를 REA로 분석해서 같은 방식으로 만든 PPTX 프레젠테이션 편집기입니다.
 구조는 **문서 엔진, 렌더러, 명령 기반 UI, 데스크톱 셸**의 네 층으로 되어 있습니다. 분석 내용은 [docs/HOP-analysis.md](docs/HOP-analysis.md)에 있습니다.
 
 ## 설치
@@ -57,3 +57,29 @@ tests/               엔진 테스트 + 샘플 덱
 - 차트와 SmartArt는 자리 표시 상자로만 보입니다(저장할 때는 보존됨).
 - 애니메이션과 전환 효과는 재생하지 않습니다(보존됨).
 - 텍스트 줄바꿈은 브라우저 레이아웃을 쓰기 때문에 PowerPoint와 약간 다를 수 있습니다.
+
+## 참고한 프로젝트
+
+이 프로젝트는 **[HOP](https://github.com/golbin/hop)** (golbin/hop, MIT License)을 참고했습니다.
+
+- HOP은 [rhwp](https://github.com/edwardkim/rhwp) (MIT License) 엔진을 쓰는 HWP 문서 편집기입니다. Tauri 데스크톱 셸, Vite 웹 UI, Rust/WASM 문서 엔진으로 되어 있습니다.
+- HOP 0.4.5 macOS 앱을 [REA](https://github.com/morluto/rea)로 분석해서 다음을 참고했습니다. 분석 내용은 [docs/HOP-analysis.md](docs/HOP-analysis.md)에 있습니다.
+  - 문서 엔진, 렌더러, 명령 기반 UI, 데스크톱 셸로 나누는 구조
+  - 메뉴바, 아이콘 툴바, 서식 바, 눈금자, 상태바로 이루어진 화면 배치와 그 요소 이름(`#menu-bar`, `#icon-toolbar`, `#style-bar`, `#status-bar` 등)
+  - `category:action` 형식의 명령 체계와, 임시 파일에 쓴 뒤 바꿔치는 안전한 저장 방식
+- HOP과 rhwp의 소스 코드는 포함하거나 복사하지 않았습니다. Opptx의 PPTX 엔진, 렌더러, UI는 모두 새로 작성했습니다.
+
+HOP과 rhwp 개발자분들께 감사드립니다.
+
+## 라이선스
+
+[MIT License](LICENSE) © 2026 moonlightpark
+
+배포 앱에 포함된 서드파티 소프트웨어(npm 패키지 14개, Rust 크레이트 248개)의 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 있습니다. 의존성이 바뀌면 `npm run notices`로 다시 만듭니다.
+선택할 수 있는 라이선스(예: JSZip의 `MIT OR GPL-3.0-or-later`)는 MIT를 골라 사용합니다.
+
+## 상표
+
+Opptx는 Microsoft Corporation과 관계가 없고, Microsoft가 보증하지 않습니다.
+Microsoft와 PowerPoint는 Microsoft Corporation의 상표입니다.
+PPTX 형식은 공개 표준인 ECMA-376 / ISO/IEC 29500(Office Open XML)에 따라 구현했습니다.

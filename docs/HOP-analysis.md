@@ -1,6 +1,7 @@
 # HOP 분석 노트 (REA)
 
 대상: `/Applications/HOP.app` — HOP 0.4.5 (`net.golbin.hop`), arm64 Mach-O, 50 MB
+소스: https://github.com/golbin/hop (MIT License). 엔진은 https://github.com/edwardkim/rhwp (MIT License)
 분석 도구: REA (`inspect_rust_binary`, `open_binary`) 와 정적 문자열 및 리소스 추출
 
 ## 관찰한 내용 (바이너리에서 직접 확인)
