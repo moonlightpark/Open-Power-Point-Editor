@@ -5,8 +5,16 @@
 
 ## 설치
 
-[Releases](https://github.com/moonlightpark/Open-Power-Point-Editor/releases)에서 macOS(Apple Silicon)용 `.dmg`를 받아 설치합니다.
-임시 서명(ad-hoc)이라 처음 실행할 때는 앱을 우클릭한 뒤 **열기**를 눌러야 합니다.
+[Releases](https://github.com/moonlightpark/Open-Power-Point-Editor/releases)에서 운영체제에 맞는 파일을 받습니다.
+
+| 운영체제 | 파일 | 참고 |
+|---|---|---|
+| Windows 10/11 (x64) | `Opptx_x.y.z_x64-setup.exe` 또는 `.msi` | 서명하지 않은 빌드입니다. SmartScreen 경고가 뜨면 **추가 정보 → 실행**을 누릅니다. WebView2가 없으면 설치 중에 자동으로 받습니다. |
+| macOS (Apple Silicon) | `Opptx_x.y.z_aarch64.dmg` | 임시 서명(ad-hoc)이라 처음 실행할 때 앱을 **우클릭 → 열기**로 실행합니다. |
+| macOS (Intel) | `Opptx_x.y.z_x64.dmg` | 위와 같습니다. |
+| Linux (x64) | `.AppImage`, `.deb`, `.rpm` | WebKitGTK 4.1이 필요합니다(Ubuntu 22.04 이상, Fedora 36 이상 등). AppImage는 `chmod +x` 후 실행합니다. |
+
+릴리즈 빌드는 `v*` 태그를 푸시하면 GitHub Actions([`.github/workflows/release.yml`](.github/workflows/release.yml))가 자동으로 만듭니다.
 
 ## 실행
 
