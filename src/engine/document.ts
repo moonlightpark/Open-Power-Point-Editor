@@ -35,6 +35,24 @@ export interface SlideContext {
   color: ColorContext;
 }
 
+/** Page presets. A4 is the real paper size (297 × 210 mm) so slides print 1:1; "web" is a 16:9 screen page. */
+export const PAGE_SIZES = {
+  'a4': { label: 'A4 가로', detail: '29.7 × 21 cm', cx: 10692000, cy: 7560000 },
+  'a4-portrait': { label: 'A4 세로', detail: '21 × 29.7 cm', cx: 7560000, cy: 10692000 },
+  'web': { label: '웹 페이지 (16:9)', detail: '33.867 × 19.05 cm · 1920×1080 화면 비율', cx: 12192000, cy: 6858000 },
+  'screen-4x3': { label: '화면 (4:3)', detail: '25.4 × 19.05 cm', cx: 9144000, cy: 6858000 },
+} as const;
+export type PageSizeKey = keyof typeof PAGE_SIZES;
+
+const FONT_PR = new Set(['rPr', 'defRPr', 'endParaRPr']);
+
+function scaleFontSizes(xml: XMLDocument, k: number) {
+  for (const el of Array.from(xml.getElementsByTagNameNS(NS.a, '*'))) {
+    if (!FONT_PR.has(el.localName) || !el.hasAttribute('sz')) continue;
+    el.setAttribute('sz', String(Math.max(100, Math.round((num(el, 'sz') * k) / 100) * 100)));
+  }
+}
+
 interface HistoryEntry { label: string; before: Map<string, string | null>; after: Map<string, string | null> }
 
 const SHAPE_TAGS = new Set(['sp', 'pic', 'grpSp', 'graphicFrame', 'cxnSp']);
@@ -153,6 +171,77 @@ export class PptxDocument {
   get slideSize() {
     const s = path(this.pres.documentElement, 'p:sldSz');
     return { cx: num(s, 'cx', 12192000), cy: num(s, 'cy', 6858000) };
+  }
+
+  /** Key of the PAGE_SIZES preset matching the current slide size, or null for other sizes. */
+  get pageSize(): PageSizeKey | null {
+    const { cx, cy } = this.slideSize;
+    const near = (a: number, b: number) => Math.abs(a - b) < 20000;
+    const key = (Object.keys(PAGE_SIZES) as PageSizeKey[]).find((k) => near(PAGE_SIZES[k].cx, cx) && near(PAGE_SIZES[k].cy, cy));
+    if (key) return key;
+    // PowerPoint's "A4 Paper" preset (27.517 × 19.05 cm) is A4 with its default margins.
+    return attr(path(this.pres.documentElement, 'p:sldSz'), 'type') === 'A4' ? 'a4' : null;
+  }
+
+  get isPortrait() {
+    const { cx, cy } = this.slideSize;
+    return cy > cx;
+  }
+
+  /** Human-readable page format, e.g. "A4 가로" or "웹 페이지 (16:9) · 세로". */
+  get pageLabel(): string {
+    const k = this.pageSize;
+    if (k) return PAGE_SIZES[k].label;
+    const { cx, cy } = this.slideSize;
+    const near = (a: number, b: number) => Math.abs(a - b) < 20000;
+    const rot = (Object.keys(PAGE_SIZES) as PageSizeKey[]).find((p) => near(PAGE_SIZES[p].cx, cy) && near(PAGE_SIZES[p].cy, cx));
+    if (rot) return `${PAGE_SIZES[rot].label} · ${cy > cx ? '세로' : '가로'}`;
+    return `사용자 지정 ${(cx / EMU_PER_CM).toFixed(1)} × ${(cy / EMU_PER_CM).toFixed(1)} cm`;
+  }
+
+  /** Turn every slide to landscape or portrait by swapping the page's width and height. */
+  setOrientation(portrait: boolean, mode: 'fit' | 'stretch' | 'none' = 'fit') {
+    const { cx, cy } = this.slideSize;
+    if (cx === cy || (cy > cx) === portrait) return;
+    this.setSlideSize(cy, cx, mode);
+  }
+
+  /**
+   * Change the slide size. Content on slides, layouts and masters is adapted:
+   * 'fit' scales uniformly (fonts too) and centers, 'stretch' maps positions and sizes
+   * to the new page per axis (fonts unchanged), 'none' leaves everything where it is.
+   */
+  setSlideSize(cx: number, cy: number, mode: 'fit' | 'stretch' | 'none' = 'fit') {
+    const { cx: ox, cy: oy } = this.slideSize;
+    if (ox === cx && oy === cy) return;
+    const masters = this.pkg.rels(this.presPath).filter((r) => r.type === REL.slideMaster).map((r) => r.target);
+    const parts = [...masters, ...this.layouts().map((l) => l.path), ...this.slides().map((s) => s.path)];
+    this.transact('페이지 크기', [this.presPath, ...parts], () => {
+      const sz = ensure(this.pres.documentElement, 'p:sldSz', ['p:notesSz']);
+      sz.setAttribute('cx', String(Math.round(cx)));
+      sz.setAttribute('cy', String(Math.round(cy)));
+      sz.removeAttribute('type');
+      if (mode === 'none') return;
+      const s = Math.min(cx / ox, cy / oy);
+      const [sx, sy] = mode === 'fit' ? [s, s] : [cx / ox, cy / oy];
+      const [dx, dy] = mode === 'fit' ? [(cx - ox * s) / 2, (cy - oy * s) / 2] : [0, 0];
+      const fontScale = mode === 'fit' && Math.abs(s - 1) > 0.005 ? s : 1;
+      for (const p of parts) {
+        const xml = this.pkg.getXml(p);
+        if (!xml) continue;
+        // Only top-level shapes: group children live in the group's own child coordinate space.
+        for (const shape of shapeChildren(spTree(xml))) {
+          const x = xfrmEl(shape);
+          const off = child(x, 'a:off'), ext = child(x, 'a:ext');
+          if (off) { off.setAttribute('x', String(Math.round(num(off, 'x') * sx + dx))); off.setAttribute('y', String(Math.round(num(off, 'y') * sy + dy))); }
+          if (ext) { ext.setAttribute('cx', String(Math.round(num(ext, 'cx') * sx))); ext.setAttribute('cy', String(Math.round(num(ext, 'cy') * sy))); }
+          for (const c of descendants(shape, 'a:gridCol')) c.setAttribute('w', String(Math.round(num(c, 'w') * sx)));
+          for (const r of descendants(shape, 'a:tr')) r.setAttribute('h', String(Math.round(num(r, 'h') * sy)));
+        }
+        if (fontScale !== 1) scaleFontSizes(xml, fontScale);
+      }
+      if (fontScale !== 1) scaleFontSizes(this.pres, fontScale);
+    });
   }
 
   slides(): SlideRef[] {
@@ -275,6 +364,7 @@ export class PptxDocument {
   }
 
   canUndo() { return this.undoStack.length > 0; }
+  clearHistory() { this.undoStack = []; this.redoStack = []; }
   canRedo() { return this.redoStack.length > 0; }
   undoLabel() { return this.undoStack.at(-1)?.label; }
 

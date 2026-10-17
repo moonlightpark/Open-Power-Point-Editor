@@ -1,5 +1,5 @@
 // Popovers (color palette, shape picker, table grid) and modal dialogs.
-import { PptxDocument, Xfrm, placeholder, readXfrm, shapeChildren, spTree, xfrmEl, findInherited } from '../engine/document';
+import { PAGE_SIZES, PageSizeKey, PptxDocument, Xfrm, placeholder, readXfrm, shapeChildren, spTree, xfrmEl, findInherited } from '../engine/document';
 import { INSERTABLE, presetPath } from '../engine/geometry';
 
 let openPop: HTMLElement | null = null;
@@ -153,6 +153,75 @@ export function html(s: string): HTMLElement {
   const d = document.createElement('div');
   d.innerHTML = s;
   return d;
+}
+
+// ---------------------------------------------------------------- page format
+
+const DEFAULT_PAGE_KEY = 'opptx.defaultPage';
+
+/** Page format for new documents (A4 unless the user picked another one in 옵션). */
+export function defaultPageSize(): PageSizeKey {
+  try {
+    const v = localStorage.getItem(DEFAULT_PAGE_KEY);
+    if (v && v in PAGE_SIZES) return v as PageSizeKey;
+  } catch { /* storage unavailable */ }
+  return 'a4';
+}
+
+export function setDefaultPageSize(k: PageSizeKey) {
+  try { localStorage.setItem(DEFAULT_PAGE_KEY, k); } catch { /* storage unavailable */ }
+}
+
+function pageChoices(name: string, current: PageSizeKey | null): string {
+  return (Object.keys(PAGE_SIZES) as PageSizeKey[]).map((k) => {
+    const p = PAGE_SIZES[k];
+    const w = 44, h = Math.round((w * p.cy) / p.cx);
+    const box = h > w ? `width:${Math.round((w * w) / h)}px;height:${w}px` : `width:${w}px;height:${h}px`;
+    return `<label class="page-choice"><input type="radio" name="${name}" value="${k}"${k === current ? ' checked' : ''}>`
+      + `<span class="page-icon"><span style="${box}"></span></span>`
+      + `<span><b>${p.label}</b><br><small>${p.detail}</small></span></label>`;
+  }).join('');
+}
+
+/** 페이지 설정: change the current document's page format. */
+export function pageSetupDialog(current: PageSizeKey | null, apply: (k: PageSizeKey, mode: 'fit' | 'stretch' | 'none', makeDefault: boolean) => void) {
+  const body = html(`<div class="page-setup">
+    <div class="page-choices">${pageChoices('page', current)}</div>
+    <div class="page-sub">내용 맞추기</div>
+    <label><input type="radio" name="mode" value="fit" checked> 비율 유지하며 맞추기 (글자 크기도 함께 조절)</label>
+    <label><input type="radio" name="mode" value="stretch"> 페이지에 맞게 늘리기 (글자 크기 유지)</label>
+    <label><input type="radio" name="mode" value="none"> 위치와 크기 그대로 두기</label>
+    <label class="page-default"><input type="checkbox" id="page-default"> 새 문서의 기본 형식으로 사용</label>
+  </div>`);
+  const val = (n: string) => body.querySelector<HTMLInputElement>(`input[name=${n}]:checked`)?.value;
+  dialog('페이지 설정', body, [
+    {
+      label: '적용', primary: true, action: () => {
+        const k = val('page') as PageSizeKey | undefined;
+        if (!k) return false;
+        apply(k, val('mode') as 'fit' | 'stretch' | 'none', body.querySelector<HTMLInputElement>('#page-default')!.checked);
+      },
+    },
+    { label: '취소' },
+  ]);
+}
+
+/** 옵션: preferences that apply to new documents. */
+export function optionsDialog() {
+  const body = html(`<div class="page-setup">
+    <div class="page-sub">새 문서의 페이지 형식</div>
+    <div class="page-choices">${pageChoices('page', defaultPageSize())}</div>
+    <small style="color:var(--color-text-secondary)">지금 열린 문서는 바뀌지 않습니다. 열린 문서는 파일 → 페이지 설정에서 바꿉니다.</small>
+  </div>`);
+  dialog('옵션', body, [
+    {
+      label: '확인', primary: true, action: () => {
+        const k = body.querySelector<HTMLInputElement>('input[name=page]:checked')?.value as PageSizeKey | undefined;
+        if (k) { setDefaultPageSize(k); toast(`새 문서 형식: ${PAGE_SIZES[k].label}`); }
+      },
+    },
+    { label: '취소' },
+  ]);
 }
 
 /** Layout chooser with schematic previews of placeholder positions. */

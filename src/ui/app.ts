@@ -1,8 +1,8 @@
 // Application controller: document lifecycle, command registration, UI state sync.
-import { ClipShape, ClipSlide, PptxDocument, RunProps, Xfrm } from '../engine/document';
+import { ClipShape, ClipSlide, PAGE_SIZES, PptxDocument, RunProps, Xfrm } from '../engine/document';
 import { ImageCache } from '../engine/render';
 import { Commands } from './commands';
-import { closeContextMenu, closePopover, colorPopover, contextMenu, dialog, html, layoutDialog, objectPropsDialog, shapePopover, tablePopover, toast } from './dialogs';
+import { closeContextMenu, closePopover, colorPopover, contextMenu, defaultPageSize, dialog, html, layoutDialog, objectPropsDialog, optionsDialog, pageSetupDialog, setDefaultPageSize, shapePopover, tablePopover, toast } from './dialogs';
 import { SlideEditor } from './editor';
 import { installIcons } from './icons';
 import { drawRulers } from './ruler';
@@ -35,6 +35,7 @@ export class App {
   readonly editor: SlideEditor;
   readonly thumbs: Thumbnails;
   private slidePaths: string[] = [];
+  private pageKey = '';
 
   constructor() {
     this.editor = new SlideEditor({
@@ -82,6 +83,7 @@ export class App {
     await Promise.all(doc.slides().map((s) => this.images.ensureForSlide(s.path)));
     this.thumbs.clear();
     this.slidePaths = doc.slides().map((s) => s.path);
+    this.pageKey = this.pageSizeKey();
     this.thumbs.update();
     this.renderCurrent();
     this.zoomFit();
@@ -94,6 +96,10 @@ export class App {
     const bytes = new Uint8Array(await res.arrayBuffer());
     await this.open(bytes, '새 프레젠테이션.pptx');
     const doc = this.doc!;
+    // The template is 16:9; fit its layouts to the chosen page format (A4 by default).
+    const page = PAGE_SIZES[defaultPageSize()];
+    doc.setSlideSize(page.cx, page.cy, 'stretch');
+    doc.clearHistory();
     const title = doc.layouts()[0];
     if (title) doc.addSlide(title.path, 0);
     doc.dirty = false;
@@ -104,7 +110,10 @@ export class App {
   private onDocChange() {
     const doc = this.doc!;
     const paths = doc.slides().map((s) => s.path);
-    const structural = paths.join('|') !== this.slidePaths.join('|');
+    const resized = this.pageSizeKey() !== this.pageKey;
+    this.pageKey = this.pageSizeKey();
+    const structural = resized || paths.join('|') !== this.slidePaths.join('|');
+    if (resized) { this.thumbs.clear(); if (this.fitZoom) queueMicrotask(() => this.zoomFit()); }
     this.slidePaths = paths;
     if (this.current >= paths.length) this.current = Math.max(0, paths.length - 1);
     const cur = paths[this.current];
@@ -157,6 +166,28 @@ export class App {
 
   // ------------------------------------------------------------------ zoom
 
+  private pageSizeKey() {
+    const { cx, cy } = this.doc?.slideSize ?? { cx: 0, cy: 0 };
+    return `${cx}x${cy}`;
+  }
+
+  private pageSetup() {
+    const doc = this.doc!;
+    pageSetupDialog(doc.pageSize, (k, mode, makeDefault) => {
+      if (this.editor.editing) this.editor.commitEdit();
+      const p = PAGE_SIZES[k];
+      doc.setSlideSize(p.cx, p.cy, mode);
+      if (makeDefault) setDefaultPageSize(k);
+      this.message(`페이지 형식: ${p.label}${makeDefault ? ' (새 문서 기본값)' : ''}`);
+    });
+  }
+
+  private setOrientation(portrait: boolean) {
+    if (this.editor.editing) this.editor.commitEdit();
+    this.doc!.setOrientation(portrait);
+    this.message(`모든 슬라이드를 ${portrait ? '세로' : '가로'} 방향으로 바꿨습니다 (Ctrl+Z로 되돌리기)`);
+  }
+
   setZoom(z: number) {
     this.fitZoom = false;
     this.editor.setZoom(z);
@@ -188,6 +219,10 @@ export class App {
     $('sb-page').textContent = `슬라이드 ${n ? this.current + 1 : 0} / ${n}`;
     const s = this.doc?.slides()[this.current];
     $('sb-layout').textContent = s ? this.doc!.layoutName(s.path) : '';
+    $('sb-page-size').textContent = this.doc?.pageLabel ?? '';
+    const portrait = !!this.doc?.isPortrait;
+    $('tb-landscape').classList.toggle('active', !!this.doc && !portrait);
+    $('tb-portrait').classList.toggle('active', portrait);
     $('sb-mode').textContent = this.editor.insertMode ? '그리기' : this.editor.editing ? '텍스트 편집' : this.editor.selection.length ? `개체 ${this.editor.selection.length}개 선택` : '선택';
     $('sb-zoom-val').textContent = Math.round(this.editor.zoom * 100) + '%';
   }
@@ -428,6 +463,7 @@ export class App {
     }, 'ctrl+o');
     c.register('file:save', { run: () => this.save(false), enabled: this.hasDoc }, 'ctrl+s');
     c.register('file:save-as', { run: () => this.save(true), enabled: this.hasDoc }, 'ctrl+shift+s');
+    c.register('file:page-setup', { run: () => this.pageSetup(), enabled: this.hasDoc });
     c.register('file:print', { run: () => printSlides(d(), this.images), enabled: this.hasDoc }, 'ctrl+p');
     c.register('file:info', { run: () => this.infoDialog(), enabled: this.hasDoc });
     c.register('file:about', () => { dialog('제품 정보', html(`<div style="line-height:1.7"><b>Opptx</b> 0.1.2<br>PPTX 프레젠테이션 편집기<br><span style="color:#5c6370;font-size:12px">HOP(HWP 편집기, MIT)의 구조 — 문서 엔진 · 렌더러 · 명령 기반 UI — 를 참고해 만든 PPTX 편집기입니다.<br>MIT License · Copyright (c) 2026 moonlightpark<br>서드파티 라이선스: THIRD_PARTY_NOTICES.md<br>Microsoft와 관계없음. PowerPoint는 Microsoft Corporation의 상표입니다.</span></div>`), [{ label: '확인', primary: true }]); });
@@ -544,6 +580,8 @@ export class App {
       enabled: this.hasDoc,
     });
     c.register('slide:new-with-layout', { run: () => layoutDialog(d(), '새 슬라이드', (p) => this.gotoSlide(d().addSlide(p, d().slides().length ? this.current + 1 : 0))), enabled: this.hasDoc });
+    c.register('slide:landscape', { run: () => this.setOrientation(false), enabled: this.hasDoc, checked: () => !!this.doc && !d().isPortrait });
+    c.register('slide:portrait', { run: () => this.setOrientation(true), enabled: this.hasDoc, checked: () => !!this.doc && d().isPortrait });
     c.register('slide:background', { run: () => colorPopover($('tb-fill'), { allowNone: '기본 배경' }, (hex) => d().setSlideBackground(this.slidePath, hex)), enabled: () => !!this.slidePath });
     // arrange
     for (const how of ['front', 'back', 'forward', 'backward'] as const) {
@@ -557,6 +595,7 @@ export class App {
     c.register('arrange:flip-v', { run: () => this.transformShapes((x) => ({ ...x, flipV: !x.flipV }), '상하 대칭'), enabled: this.hasSel });
     c.register('arrange:rotate-right', { run: () => this.transformShapes((x) => ({ ...x, rot: (x.rot + 90) % 360 }), '회전'), enabled: this.hasSel });
     // tools
+    c.register('tool:options', () => optionsDialog());
     c.register('tool:shortcuts', () => {
       const labels = new Map<string, string>();
       document.querySelectorAll<HTMLElement>('.md-item[data-cmd]').forEach((m) => labels.set(m.dataset.cmd!, m.querySelector('.md-label')!.textContent!));

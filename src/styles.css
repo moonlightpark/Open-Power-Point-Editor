@@ -225,3 +225,17 @@ kbd { background: #f1f3f6; border: 1px solid #ccd; border-radius: 3px; padding: 
 }
 
 .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: rgba(30,30,30,.9); color: #fff; padding: 8px 16px; border-radius: 6px; z-index: 6000; font-size: 13px; }
+
+/* 페이지 설정 / 옵션 */
+.page-setup { display: flex; flex-direction: column; gap: 6px; min-width: 380px; }
+.page-setup label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.page-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.page-choices .page-choice { border: 1px solid var(--ui-border-light); border-radius: 6px; padding: 8px; gap: 8px; }
+.page-choice:has(input:checked) { border-color: var(--accent); background: rgba(47, 111, 235, .06); }
+.page-choice small { color: var(--color-text-secondary); font-size: 11px; }
+.page-icon { width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.page-icon > span { border: 1.5px solid var(--color-text-secondary); background: #fff; border-radius: 2px; }
+.page-sub { font-weight: 600; margin-top: 6px; }
+.page-default { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--ui-border-light); }
+.sb-page-size { border: none; background: none; cursor: pointer; font: inherit; color: inherit; padding: 0 6px; border-radius: 3px; }
+.sb-page-size:hover { background: rgba(0,0,0,.06); }

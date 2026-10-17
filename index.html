@@ -20,6 +20,7 @@
         <div class="md-item" data-cmd="file:save"><span class="md-label">저장</span><span class="md-shortcut">Ctrl+S</span></div>
         <div class="md-item" data-cmd="file:save-as"><span class="md-label">다른 이름으로 저장…</span><span class="md-shortcut">Ctrl+Shift+S</span></div>
         <div class="md-sep"></div>
+        <div class="md-item" data-cmd="file:page-setup"><span class="md-label">페이지 설정…</span></div>
         <div class="md-item" data-cmd="file:print"><span class="md-label">인쇄 / PDF 내보내기</span><span class="md-shortcut">Ctrl+P</span></div>
         <div class="md-sep"></div>
         <div class="md-item" data-cmd="file:info"><span class="md-label">문서 정보</span></div>
@@ -106,6 +107,11 @@
         <div class="md-item" data-cmd="slide:move-down"><span class="md-label">뒤로 이동</span></div>
         <div class="md-sep"></div>
         <div class="md-item" data-cmd="slide:layout"><span class="md-label">레이아웃 변경…</span></div>
+        <div class="md-sep"></div>
+        <div class="md-item" data-cmd="slide:landscape"><span class="md-label">가로 방향</span></div>
+        <div class="md-item" data-cmd="slide:portrait"><span class="md-label">세로 방향</span></div>
+        <div class="md-item" data-cmd="file:page-setup"><span class="md-label">페이지 설정…</span></div>
+        <div class="md-sep"></div>
         <div class="md-item" data-cmd="slide:background"><span class="md-label">배경 색…</span></div>
       </div>
     </div>
@@ -133,6 +139,7 @@
       <span class="menu-title">도구</span>
       <div class="menu-dropdown">
         <div class="md-item" data-cmd="edit:find"><span class="md-label">찾기 / 바꾸기…</span></div>
+        <div class="md-item" data-cmd="tool:options"><span class="md-label">옵션…</span></div>
         <div class="md-item" data-cmd="tool:shortcuts"><span class="md-label">단축키 목록</span><span class="md-shortcut">F1</span></div>
       </div>
     </div>
@@ -156,6 +163,8 @@
     <div class="tb-group">
       <button class="tb-btn" data-cmd="slide:new" title="새 슬라이드 (Ctrl+M)"><span class="tb-icon" data-icon="slide"></span><span class="tb-label">새<br>슬라이드</span></button>
       <button class="tb-btn" data-cmd="slide:layout" title="레이아웃"><span class="tb-icon" data-icon="layout"></span><span class="tb-label">레이<br>아웃</span></button>
+      <button class="tb-btn" id="tb-landscape" data-cmd="slide:landscape" title="모든 슬라이드를 가로 방향으로"><span class="tb-icon" data-icon="landscape"></span><span class="tb-label">가로</span></button>
+      <button class="tb-btn" id="tb-portrait" data-cmd="slide:portrait" title="모든 슬라이드를 세로 방향으로"><span class="tb-icon" data-icon="portrait"></span><span class="tb-label">세로</span></button>
     </div>
     <span class="tb-sep"></span>
     <div class="tb-group">
@@ -241,6 +250,7 @@
   <div id="status-bar">
     <span id="sb-page" class="sb-item">슬라이드 0 / 0</span>
     <span id="sb-layout" class="sb-item"></span>
+    <button id="sb-page-size" class="sb-item sb-page-size" data-cmd="file:page-setup" title="페이지 설정"></button>
     <span id="sb-mode" class="sb-item">선택</span>
     <span id="sb-message" class="sb-item sb-msg"></span>
     <span class="sb-spacer"></span>

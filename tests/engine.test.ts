@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 const dir = join(process.cwd(), 'tests');
 import { describe, expect, it } from 'vitest';
-import { PptxDocument, shapeChildren, spTree, placeholder } from '../src/engine/document';
+import { PAGE_SIZES, PptxDocument, readXfrm, shapeChildren, xfrmEl, spTree, placeholder } from '../src/engine/document';
 import { ImageCache, renderSlide } from '../src/engine/render';
 import { descendants } from '../src/engine/xml';
 
@@ -160,6 +160,46 @@ describe('PptxDocument', () => {
     expect(red.style.fontSize).toBe('24px');
     const body = renderSlide(doc, doc.slides()[1].path, images);
     expect(body.el.querySelectorAll('.tx-p.has-bullet').length).toBe(5);
+  });
+
+  it('changes the page format to A4 and back with undo', async () => {
+    const doc = await PptxDocument.load(fixture());
+    expect(doc.pageSize).toBe('web');
+    const p = doc.slides()[0].path;
+    const id = doc.addShape(p, 'rect', { x: 1000000, y: 500000, w: 2000000, h: 1000000, rot: 0, flipH: false, flipV: false }, '사각형');
+    const first = () => xfrmEl(doc.findShape(p, id)!);
+    const before = readXfrm(first())!;
+    const a4 = PAGE_SIZES.a4;
+    doc.setSlideSize(a4.cx, a4.cy, 'fit');
+    expect(doc.slideSize).toEqual({ cx: a4.cx, cy: a4.cy });
+    expect(doc.pageSize).toBe('a4');
+    const s = a4.cx / 12192000;
+    const after = readXfrm(first())!;
+    expect(after.w).toBeCloseTo(before.w * s, -1);
+    expect(after.y).toBeCloseTo(before.y * s + (a4.cy - 6858000 * s) / 2, -1);
+    // Layouts and masters follow, so the page stays consistent after a reload.
+    const re = await reload(doc);
+    expect(re.pageSize).toBe('a4');
+    doc.undo();
+    expect(doc.pageSize).toBe('web');
+    expect(readXfrm(first())).toEqual(before);
+    doc.setSlideSize(PAGE_SIZES['a4-portrait'].cx, PAGE_SIZES['a4-portrait'].cy, 'stretch');
+    expect(doc.pageSize).toBe('a4-portrait');
+  });
+
+  it('switches all slides between landscape and portrait', async () => {
+    const doc = await PptxDocument.load(fixture());
+    expect(doc.isPortrait).toBe(false);
+    doc.setOrientation(true);
+    expect(doc.slideSize).toEqual({ cx: 6858000, cy: 12192000 });
+    expect(doc.pageLabel).toBe('웹 페이지 (16:9) · 세로');
+    doc.setOrientation(true); // already portrait: no extra undo step
+    doc.undo();
+    expect(doc.pageLabel).toBe('웹 페이지 (16:9)');
+    doc.setSlideSize(PAGE_SIZES.a4.cx, PAGE_SIZES.a4.cy);
+    doc.setOrientation(true);
+    expect(doc.pageSize).toBe('a4-portrait');
+    expect(doc.pageLabel).toBe('A4 세로');
   });
 
   it('writes an edited deck for external validation', async () => {

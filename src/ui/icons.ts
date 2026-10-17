@@ -10,6 +10,8 @@ export const ICONS: Record<string, string> = {
   undo: S('<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'),
   redo: S('<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>'),
   slide: S('<rect x="3" y="5" width="18" height="13" rx="1" fill="#fff"/><path d="M6 9h8M6 12h12M6 15h9" stroke="#8a93a3"/><circle cx="19" cy="19" r="4" fill="#2b6fd6" stroke="none"/><path d="M19 17v4M17 19h4" stroke="#fff"/>'),
+  landscape: S('<rect x="2.5" y="6" width="19" height="13" rx="1" fill="#fff"/><path d="M6 10h8M6 13h12M6 16h9" stroke="#8a93a3"/>'),
+  portrait: S('<rect x="5.5" y="2.5" width="13" height="19" rx="1" fill="#fff"/><path d="M8.5 7h7M8.5 10h7M8.5 13h5" stroke="#8a93a3"/>'),
   layout: S('<rect x="3" y="4" width="18" height="16" rx="1" fill="#fff"/><path d="M3 9h18M10 9v11"/>'),
   textbox: S('<rect x="3" y="4" width="18" height="16" rx="1" stroke-dasharray="2 2"/><path d="M8 8h8M12 8v9"/>'),
   shape: S('<circle cx="9" cy="9" r="5" fill="#cfe0fb" stroke="#2b6fd6"/><rect x="10" y="11" width="10" height="9" fill="#f9d7b5" stroke="#d9772b"/>'),
